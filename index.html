@@ -3,84 +3,52 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>СПб Доставка — 30-60 минут по городу</title>
-<meta name="description" content="Быстрая доставка в Санкт-Петербурге.">
+<title>СПб Доставка — Калининский район 30-60 мин</title>
+<meta name="description" content="Быстрая доставка в Калининском районе за 30-60 минут.">
+<link rel="canonical" href="https://fruit-exchange.github.io/spb-delivery/">
 <meta name="robots" content="index, follow">
+<meta name="geo.region" content="RU-SPE">
+<meta name="geo.placename" content="Санкт-Петербург">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Store",
+  "name": "СПб Доставка",
+  "description": "Быстрая доставка в Калининском районе за 30-60 минут.",
+  "url": "https://fruit-exchange.github.io/spb-delivery/",
+  "address": {
+    "@type": "PostalAddress",
+    "addressLocality": "Санкт-Петербург",
+    "addressRegion": "Калининский"
+  },
+  "openingHours": "Mo-Su 00:00-23:59"
+}
+</script>
 <style>body{background:#0d1117;color:#c9d1d9;font-family:system-ui,sans-serif;margin:0}
 .header{text-align:center;padding:50px 20px 30px;background:linear-gradient(135deg,#0d1117,#161b22)}
-.header h1{font-size:2.5em;color:#d4af37;margin:0}
+.header h1{font-size:2.5em;color:#3fb950;margin:0}
 .header p{color:#8b949e;font-size:1.1em}
+.cart-bar{position:fixed;top:0;right:0;background:#161b22;border:1px solid #3fb950;border-radius:0 0 0 12px;padding:10px 20px;z-index:100}
+.cart-bar span{color:#3fb950;font-weight:bold}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;padding:20px;max-width:1200px;margin:0 auto}
 .card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:16px;transition:transform .2s}
-.card:hover{transform:translateY(-3px);border-color:#d4af37}
+.card:hover{transform:translateY(-3px);border-color:#3fb950}
 .card img{width:100%;height:200px;object-fit:cover;border-radius:8px}
-.card h3{color:#d4af37;margin:10px 0 5px;font-size:1.1em}
+.card h3{color:#3fb950;margin:10px 0 5px;font-size:1.1em}
 .card p{color:#8b949e;font-size:.9em;margin:5px 0}
 .price{color:#3fb950;font-size:1.3em;font-weight:bold}
 .old{color:#484f58;text-decoration:line-through;font-size:.9em}
-.badge{display:inline-block;background:#d4af3722;color:#d4af37;padding:2px 8px;border-radius:6px;font-size:.8em;margin:2px}
+.badge{display:inline-block;background:rgba(255,255,255,.08);color:#3fb950;padding:2px 8px;border-radius:6px;font-size:.8em;margin:2px}
+.btn{background:#3fb95022;color:#3fb950;border:1px solid #3fb950;border-radius:6px;padding:6px 14px;cursor:pointer;margin-top:8px;font-size:.9em}
+.btn:hover{background:#3fb95044}
 .footer{text-align:center;padding:40px;color:#484f58}
 .loading{text-align:center;padding:60px;color:#484f58}</style>
 </head>
-<body>
-<div class="header"><h1>СПб Доставка</h1><p>Быстрая доставка в Санкт-Петербурге.</p></div>
+<body data-district="Калининский">
+<div class="cart-bar">🛒 <span id="cart-count">0</span> | <span id="cart-total">0₽</span> <button class="btn" onclick="checkout()">Оформить</button></div>
+<div class="header"><h1>СПб Доставка</h1><p>Быстрая доставка в Калининском районе за 30-60 минут.</p></div>
 <div class="grid" id="catalog"><div class="loading">Загрузка каталога...</div></div>
-<div class="footer">© 2026 СПб Доставка. Все права защищены.</div>
-<script>
-
-var ROUTERS=[
-  'https://vlvc.ru/api/v1',
-  'https://lyra-15172d69.base44.app/functions/r1Proxy?path=/api/v1',
-  'https://PLACEHOLDER_1.workers.dev',
-  'https://PLACEHOLDER_2.workers.dev',
-  'https://PLACEHOLDER_3.workers.dev'
-];
-var TIMEOUT_MS=400;
-var CACHE_TTL=60000;
-
-function ft(url,o={},t=TIMEOUT_MS){return new Promise((res,rej)=>{var c=new AbortController();var id=setTimeout(()=>{c.abort();rej(new Error('timeout'));},t);fetch(url,{...o,signal:c.signal}).then(r=>{clearTimeout(id);res(r);}).catch(e=>{clearTimeout(id);rej(e);});});}
-function gc(k){try{var c=localStorage.getItem(k);if(!c)return null;var p=JSON.parse(c);if(Date.now()-p.ts<CACHE_TTL)return p.data;localStorage.removeItem(k);}catch(e){}return null;}
-function sc(k,d){try{localStorage.setItem(k,JSON.stringify({data:d,ts:Date.now()}));}catch(e){}}
-
-async function api(path){
-  var ck='alko_'+path;
-  var cached=gc(ck);
-  if(cached){console.log('[CACHE]'+path);return cached;}
-  var ps=ROUTERS.map(function(r){return ft(r+path).then(function(r){if(!r.ok)throw new Error(r.status);return r.json();});});
-  try{
-    var d=await Promise.any(ps);
-    sc(ck,d);
-    return d;
-  }catch(e){
-    console.error('[FAIL]'+e.message);
-    var ex=localStorage.getItem(ck);
-    if(ex)return JSON.parse(ex).data;
-    throw new Error('all routers failed');
-  }
-}
-
-async function load(){
-  try{
-    var items=await api('/products');
-    var c=document.getElementById('catalog');
-    c.innerHTML='';
-    items.filter(function(i){return i.in_stock;}).slice(0,24).forEach(function(i){
-      var d=document.createElement('div');
-      d.className='card';
-      var img=i.photo_url?'<img src="https://vlvc.ru'+i.photo_url+'" loading="lazy" alt="'+i.name+'">':'';
-      var badges='<span class="badge">'+(i.category||'Товар')+'</span>';
-      if(i.brand)badges+='<span class="badge">'+i.brand+'</span>';
-      var price='<div class="price">'+i.price+'\u20bd</div>';
-      var old=i.old_price?'<span class="old">'+i.old_price+'\u20bd</span>':'';
-      d.innerHTML=img+'<h3>'+i.name+'</h3>'+badges+'<p>'+(i.description||'')+'</p>'+price+old;
-      c.appendChild(d);
-    });
-  }catch(e){
-    console.error(e);
-    document.getElementById('catalog').innerHTML='<div class="loading">Каталог временно недоступен.</div>';
-  }
-}
-load();
-</script>
+<div class="footer">© 2026 СПб Доставка. Доставка в Калининский районе СПб.</div>
+<script src="app.js"></script>
 </body>
 </html>
