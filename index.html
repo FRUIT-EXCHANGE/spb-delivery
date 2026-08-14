@@ -61,7 +61,7 @@ async function api(path){
 
 async function load(){
   try{
-    var items=await api('/Item');
+    var items=await api('/products');
     var c=document.getElementById('catalog');
     c.innerHTML='';
     items.filter(function(i){return i.in_stock;}).slice(0,24).forEach(function(i){
