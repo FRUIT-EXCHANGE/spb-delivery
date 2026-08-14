@@ -6,31 +6,79 @@
 <title>СПб Доставка — 30-60 минут по городу</title>
 <meta name="description" content="Быстрая доставка в Санкт-Петербурге.">
 <meta name="robots" content="index, follow">
-<style>
-body{background:#0d1117;color:#c9d1d9;font-family:system-ui,sans-serif;margin:0}
+<style>body{background:#0d1117;color:#c9d1d9;font-family:system-ui,sans-serif;margin:0}
 .header{text-align:center;padding:50px 20px 30px;background:linear-gradient(135deg,#0d1117,#161b22)}
-.header h1{font-size:2.5em;color:#00b4d8;margin:0}
+.header h1{font-size:2.5em;color:#d4af37;margin:0}
 .header p{color:#8b949e;font-size:1.1em}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;padding:20px;max-width:1200px;margin:0 auto}
 .card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:16px;transition:transform .2s}
-.card:hover{transform:translateY(-3px);border-color:#00b4d8}
+.card:hover{transform:translateY(-3px);border-color:#d4af37}
 .card img{width:100%;height:200px;object-fit:cover;border-radius:8px}
-.card h3{color:#00b4d8;margin:10px 0 5px;font-size:1.1em}
+.card h3{color:#d4af37;margin:10px 0 5px;font-size:1.1em}
 .card p{color:#8b949e;font-size:.9em;margin:5px 0}
 .price{color:#3fb950;font-size:1.3em;font-weight:bold}
 .old{color:#484f58;text-decoration:line-through;font-size:.9em}
-.badge{display:inline-block;background:#00b4d822;color:#00b4d8;padding:2px 8px;border-radius:6px;font-size:.8em;margin:2px}
+.badge{display:inline-block;background:#d4af3722;color:#d4af37;padding:2px 8px;border-radius:6px;font-size:.8em;margin:2px}
 .footer{text-align:center;padding:40px;color:#484f58}
-.loading{text-align:center;padding:60px;color:#484f58}
-</style>
+.loading{text-align:center;padding:60px;color:#484f58}</style>
 </head>
 <body>
-<div class="header"><h1>СПб Доставка</h1><p>30-60 минут по городу</p></div>
+<div class="header"><h1>СПб Доставка</h1><p>Быстрая доставка в Санкт-Петербурге.</p></div>
 <div class="grid" id="catalog"><div class="loading">Загрузка каталога...</div></div>
 <div class="footer">© 2026 СПб Доставка. Все права защищены.</div>
 <script>
-const API="https://lyra-15172d69.base44.app/functions/r1Proxy?path=/api/v1";
-async function load(){try{const r=await fetch(API+"/Item");const items=await r.json();const c=document.getElementById("catalog");c.innerHTML="";items.filter(i=>i.in_stock).slice(0,24).forEach(i=>{const d=document.createElement("div");d.className="card";d.innerHTML=`${i.photo_url?`<img src="https://vlvc.ru${i.photo_url}" loading="lazy" alt="${i.name}">`:""}`+`<h3>${i.name}</h3><span class="badge">${i.category||"Товар"}</span>`+`${i.brand?`<span class="badge">${i.brand}</span>`:""}`+`<p>${i.description||""}</p><div class="price">${i.price}\u20bd</div>${i.old_price?`<span class="old">${i.old_price}\u20bd</span>`:""}`;c.appendChild(d);});}catch(e){console.error(e);document.getElementById("catalog").innerHTML="<div class=loading>Каталог временно недоступен.</div>";}}
+
+const ROUTERS=[
+  'https://lyra-15172d69.base44.app/functions/r1Proxy?path=/api/v1',
+  'https://PLACEHOLDER_1.workers.dev',
+  'https://PLACEHOLDER_2.workers.dev',
+  'https://PLACEHOLDER_3.workers.dev',
+  'https://PLACEHOLDER_4.workers.dev'
+];
+const TIMEOUT_MS=400;
+const CACHE_TTL=60000;
+
+function ft(url,o={},t=TIMEOUT_MS){return new Promise((res,rej)=>{const c=new AbortController();const id=setTimeout(()=>{c.abort();rej(new Error('timeout'));},t);fetch(url,{...o,signal:c.signal}).then(r=>{clearTimeout(id);res(r);}).catch(e=>{clearTimeout(id);rej(e);});});}
+function gc(k){try{const c=localStorage.getItem(k);if(!c)return null;const{data,ts}=JSON.parse(c);if(Date.now()-ts<CACHE_TTL)return data;localStorage.removeItem(k);}catch(e){}return null;}
+function sc(k,d){try{localStorage.setItem(k,JSON.stringify({data:d,ts:Date.now()}));}catch(e){}}
+
+async function api(path){
+  const ck='alko_'+path;
+  const cached=gc(ck);
+  if(cached){console.log('[CACHE]'+path);return cached;}
+  const ps=ROUTERS.map(r=>ft(r+path).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();}));
+  try{
+    const d=await Promise.any(ps);
+    sc(ck,d);
+    return d;
+  }catch(e){
+    console.error('[FAIL]'+e.message);
+    const ex=localStorage.getItem(ck);
+    if(ex)return JSON.parse(ex).data;
+    throw new Error('all routers failed');
+  }
+}
+
+async function load(){
+  try{
+    const items=await api('/Item');
+    const c=document.getElementById('catalog');
+    c.innerHTML='';
+    items.filter(i=>i.in_stock).slice(0,24).forEach(i=>{
+      const d=document.createElement('div');
+      d.className='card';
+      d.innerHTML=`${i.photo_url?`<img src="https://vlvc.ru${i.photo_url}" loading="lazy" alt="${i.name}">`:''}`+
+        `<h3>${i.name}</h3><span class="badge">${i.category||'Товар'}</span>`+
+        `${i.brand?`<span class="badge">${i.brand}</span>`:''}`+
+        `<p>${i.description||''}</p><div class="price">${i.price}₽</div>`+
+        `${i.old_price?`<span class="old">${i.old_price}₽</span>`:''}`;
+      c.appendChild(d);
+    });
+  }catch(e){
+    console.error(e);
+    document.getElementById('catalog').innerHTML='<div class="loading">Каталог временно недоступен.</div>';
+  }
+}
 load();
 </script>
 </body>
